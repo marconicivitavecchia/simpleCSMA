@@ -1,4 +1,4 @@
-# simpleCSMA
+# simpleCSMA trailed
 Implementazione del protocollo CSMA/CA con rilevazione delle collisioni basata sulla perdita o sulla non correttezza degli ack inviati dal ricevitore. Il protocollo è in fase di sviluppo e test, osservazioni e issue sono ben accette!
 
 Si può usare per realizzare un sistema multimaster con stazioni che trasmettono indipendentemente l'una dall'altra senza la supervisione di un dispositivo centrale (master).
@@ -14,9 +14,9 @@ Sostanzialmente è un rimaneggiamento del codice citato di seguito:
  
  Trama: 
  
-        |---DA---|---SA---|---GROUP---|---SI---|---BYTE_CNT---|---PAYLOAD---|---CRC---|
+        |---DA---|---SA---|---GROUP---|---SI---|---BYTE_CNT---|---PAYLOAD---|---CRC---|--END_DELIM--|
  
-        |---1B---|---1B---|----1B-----|---1B---|------1B------|---VARIABLE--|---2B----|
+        |---1B---|---1B---|----1B-----|---1B---|------1B------|---VARIABLE--|---2B----|------1B-----|
  
  - DA: destination address - 1byte (1-254, 255 indirizzo di broadcast)
  
