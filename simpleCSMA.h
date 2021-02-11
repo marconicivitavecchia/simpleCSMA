@@ -21,14 +21,14 @@
 #include "Arduino.h"
 #define MAX_BUFFER 		64
 #define STOP_BIT  		5  
+#define SOFV			126	  
 #define MSG  			1 	
 #define ACK  			129 //(100000001)  il primo (MSB) bit è un ack bit
-#define TBASE			20
 #define MAXATTEMPTS  	5
 #define WNDW    		20
 // SlotTime = CCATime + RxTxTurnaroundTime + AirPropagationTime+ MACProcessingDelay 
 // SIFS < DIFS < EIFS
-#define DIFS 			5	//DIFS =  SIFS  + (2 * Slot time) 
+#define DIFS 			6	//DIFS =  SIFS  + (2 * Slot time) 
 #define SIFS 			1
 #define TXTIMEOUT 		2000
 #define DEBUG  			1
@@ -59,7 +59,8 @@ enum ERR_LIST
 
 enum MESSAGE
 {
-    DA                           = 0, //!< ID field
+					 		
+	DA  						  = 0, //!< ID field	                       
 	SA,
     GROUP, 		//!< Function code position
     SI, 		//!< Service identifier
@@ -69,7 +70,8 @@ enum MESSAGE
 
 typedef struct
 {
-    uint8_t u8da;          /*!< Slave address between 1 and 247. 0 means broadcast */ 
+    uint8_t u8sof;
+	uint8_t u8da;          /*!< Slave address between 1 and 247. 0 means broadcast */ 
 	uint8_t u8sa;          /*!< Slave address between 1 and 247. 0 means broadcast */
     uint8_t u8group;         /*!< Function code: 1, 2, 3, 4, 5, 6, 15 or 16 */
     uint8_t u8si;    /*!< Address of the first register to access at slave/s */

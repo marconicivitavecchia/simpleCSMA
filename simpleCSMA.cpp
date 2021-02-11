@@ -86,11 +86,12 @@ void init(Stream *port485, uint8_t _txpin485, uint8_t mysa485, uint8_t mygroup48
 	mygroup = mygroup485;
 	u16InCnt = u16OutCnt = u16errCnt = u16inAckCnt = u16inMsgCnt = u16OutMsgCnt = u16reOutMsgCnt = u16noreOutMsgCnt = 0;
 	static_cast<HardwareSerial*>(port)->begin(u32speed);
+	ackobj.u8sof = SOFV;
 	ackobj.u8sa = mysa;
 	ackobj.u8group = mygroup;
 	ackobj.u8si = ACK;
-	ackobj.data = "";
-	ackobj.msglen = strlen((char*)ackobj.data )+1;
+	ackobj.data = 0;
+	ackobj.msglen = 0;
 }
 
 extern void rcvEventCallback(modbus_t* rcvd);
@@ -159,6 +160,7 @@ int8_t poll(modbus_t *rt, uint8_t *buf) // valuta risposte pendenti
 {	
 	// controlla se è in arrivo un messaggio
 	uint8_t u8current;
+	
     u8current = port->available(); // vede se è arrivato un "pezzo" iniziale del messaggio (frame chunk)
 
     if (u8current == 0){ //canale libero
@@ -242,6 +244,7 @@ int8_t poll(modbus_t *rt, uint8_t *buf) // valuta risposte pendenti
 			}	
 			DEBUG_PRINTLN("cca changed to false: ");
 		}
+		//u8complete = port2->find(SOFV);
 	}
 	
     // controlla se c'è uno STOP_BIT dopo la fine, se non c'è allora la trama non è ancora completamente arrivata
@@ -253,6 +256,7 @@ int8_t poll(modbus_t *rt, uint8_t *buf) // valuta risposte pendenti
 		//DEBUG_PRINTLN(("STOP_BIT:");
         return 0;
     }
+	
 	// Se la distanza tra nuovo e vecchio carattere è minore di uno stop bit ancora la trama non è completa
     if ((unsigned long)(millis() -u32time) < (unsigned long)STOP_BIT) return 0;
 	
@@ -339,6 +343,9 @@ void sendTxBuffer(uint8_t u8BufferSize){
     u8BufferSize++;
     u8Buffer[ u8BufferSize ] = u16crc & 0x00ff; //seleziona il byte meno significativo
     u8BufferSize++;
+	// add end delimiter
+	u8Buffer[ u8BufferSize ] = SOFV;
+    u8BufferSize++;
 
 	if (_txpin > 1)
     {
@@ -377,18 +384,23 @@ int8_t getRxBuffer()
     uint8_t u8BufferSize = 0;
     while ( port->available() ) // finchè ce ne sono, leggi tutti i caratteri disponibili
     {							// e mettili sul buffer di ricezione
-        u8Buffer[ u8BufferSize ] = port->read();
-		DEBUG_PRINT("(");
-		DEBUG_PRINT((char) u8Buffer[ u8BufferSize ]);
-		DEBUG_PRINT(":");
-		DEBUG_PRINT((uint8_t) u8Buffer[ u8BufferSize ]);
-		DEBUG_PRINT("),");
-        u8BufferSize ++;
-		// segnala evento di buffer overflow (un attacco hacker?)
-        if (u8BufferSize >= MAX_BUFFER){
-			u16InCnt++;
-			u16errCnt++;
-			return ERR_BUFF_OVERFLOW;
+		uint8_t curr = port->read();
+		if(curr != SOFV){
+			u8Buffer[ u8BufferSize ] = curr;
+			DEBUG_PRINT("(");
+			DEBUG_PRINT((char) u8Buffer[ u8BufferSize ]);
+			DEBUG_PRINT(":");
+			DEBUG_PRINT((uint8_t) u8Buffer[ u8BufferSize ]);
+			DEBUG_PRINT("),");
+			u8BufferSize ++;
+			// segnala evento di buffer overflow (un attacco hacker?)
+			if (u8BufferSize >= MAX_BUFFER){
+				u16InCnt++;
+				u16errCnt++;
+				return ERR_BUFF_OVERFLOW;
+			}
+		}else{
+			break;
 		}
     }
 	DEBUG_PRINTLN();
@@ -411,6 +423,7 @@ int8_t getRxBuffer()
 void rcvEvent(modbus_t* rcvd, uint8_t msglen){
 	// converti da formato seriale (array di char) in formato parallelo (struct)
 	// header
+
 	rcvd->u8da = u8Buffer[ SA ];
 	rcvd->u8group = u8Buffer[ GROUP ];
 	rcvd->u8si = u8Buffer[ SI ];
